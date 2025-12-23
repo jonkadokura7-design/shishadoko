@@ -285,8 +285,9 @@
                 return;
             }
 
-            // タイムアウト設定 (30秒)
+            // タイムアウト設定 (30秒) + 高精度モード + キャッシュ無効
             const options = {
+                enableHighAccuracy: true,
                 timeout: 30000,
                 maximumAge: 0
             };
