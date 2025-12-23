@@ -32,8 +32,14 @@ export default function SearchPage() {
             const res = await fetch(`/api/places?lat=${lat}&lng=${lng}`);
             if (!res.ok) throw new Error('Failed to fetch hotels');
             const data = await res.json();
-            setPlaces(data.places);
+            if (data.places) {
+                setPlaces(data.places);
+            } else {
+                setPlaces([]);
+            }
         } catch (err) {
+            console.error(err);
+
             setError('Failed to load nearby places. Please try again.');
         } finally {
             setLoading(false);
