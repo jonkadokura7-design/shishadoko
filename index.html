@@ -322,9 +322,9 @@
                             };
                         });
 
-                        // 2. レビューで3.5以上のお店のみ
+                        // 2. レビュー制限を解除 (なるべく多く表示するため)
                         // 4. 5キロ圏内 (Strict filtering)
-                        candidates = candidates.filter(p => p.rating >= 3.5 && p.distance <= 5.0);
+                        candidates = candidates.filter(p => p.distance <= 5.0);
 
                         // 距離順にソート
                         candidates.sort((a, b) => a.distance - b.distance);
