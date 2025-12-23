@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ja">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -10,14 +11,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- Lucide Icons -->
     <script src="https://unpkg.com/lucide@latest"></script>
-    
+
     <style>
         :root {
-            --primary: #fbbf24; /* Amber 400 */
+            --primary: #fbbf24;
+            /* Amber 400 */
         }
+
         body {
             font-family: 'Noto Sans JP', sans-serif;
-            background-color: #1a1025; /* Deep purple bg */
+            background-color: #1a1025;
+            /* Deep purple bg */
             color: #f3f4f6;
             min-height: 100vh;
             background-image: url('./public/shisha-bg.jpg');
@@ -26,6 +30,7 @@
             background-attachment: fixed;
             overflow-x: hidden;
         }
+
         /* Dark Overlay */
         body::before {
             content: '';
@@ -37,7 +42,7 @@
             background: rgba(15, 10, 25, 0.85);
             z-index: -1;
         }
-        
+
         /* Glassmorphism */
         .glass-card {
             background: rgba(40, 30, 60, 0.4);
@@ -59,6 +64,7 @@
             box-shadow: 0 0 15px rgba(255, 215, 0, 0.4);
             transition: all 0.3s ease;
         }
+
         .glow-btn:hover {
             box-shadow: 0 0 25px rgba(255, 215, 0, 0.7);
             transform: translateY(-2px);
@@ -66,10 +72,21 @@
 
         /* Smoke Animation Support */
         @keyframes drift {
-            0% { transform: translateY(0) scale(0.5) translateX(-50%); opacity: 0; }
-            50% { opacity: 0.4; }
-            100% { transform: translateY(-100px) scale(2) translateX(-20%); opacity: 0; }
+            0% {
+                transform: translateY(0) scale(0.5) translateX(-50%);
+                opacity: 0;
+            }
+
+            50% {
+                opacity: 0.4;
+            }
+
+            100% {
+                transform: translateY(-100px) scale(2) translateX(-20%);
+                opacity: 0;
+            }
         }
+
         .smoke-particle {
             position: absolute;
             bottom: 0;
@@ -84,23 +101,28 @@
         }
     </style>
 </head>
+
 <body class="flex flex-col items-center justify-center p-4">
 
     <!-- Screen 1: Landing -->
-    <div id="landing-screen" class="flex flex-col items-center justify-center w-full max-w-lg transition-opacity duration-500">
+    <div id="landing-screen"
+        class="flex flex-col items-center justify-center w-full max-w-lg transition-opacity duration-500">
         <div class="mb-8 text-center space-y-4">
             <!-- Decorative BG Elements -->
-            <div class="fixed top-[-10%] left-[-10%] w-[50vh] h-[50vh] bg-purple-900/20 rounded-full blur-[100px] pointer-events-none"></div>
-            
+            <div
+                class="fixed top-[-10%] left-[-10%] w-[50vh] h-[50vh] bg-purple-900/20 rounded-full blur-[100px] pointer-events-none">
+            </div>
+
             <h1 class="text-5xl md:text-7xl font-bold tracking-tighter text-gold-gradient drop-shadow-lg pb-2">
                 シーシャどこ？
             </h1>
             <p class="text-lg text-gray-400 font-medium tracking-wide">
-                Find the best Shisha spots nearby.
+                現在地から、最高のシーシャ体験を。
             </p>
         </div>
 
-        <button onclick="startSearch()" class="group relative inline-flex h-14 w-64 items-center justify-center overflow-hidden rounded-full bg-amber-500 px-6 font-medium text-neutral-950 transition-all duration-300 hover:scale-105 hover:bg-amber-400 focus:outline-none glow-btn">
+        <button onclick="startSearch()"
+            class="group relative inline-flex h-14 w-64 items-center justify-center overflow-hidden rounded-full bg-amber-500 px-6 font-medium text-neutral-950 transition-all duration-300 hover:scale-105 hover:bg-amber-400 focus:outline-none glow-btn">
             <i data-lucide="map-pin" class="mr-2 h-5 w-5"></i>
             <span class="tracking-wider text-lg">今すぐ探す</span>
         </button>
@@ -108,11 +130,11 @@
         <div class="flex gap-4 text-sm text-gray-500 mt-12">
             <div class="flex items-center gap-1">
                 <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i>
-                <span>High Ratings Only</span>
+                <span>★3.5以上の高評価</span>
             </div>
             <div class="flex items-center gap-1">
                 <i data-lucide="clock" class="w-4 h-4 text-amber-500"></i>
-                <span>Nearby</span>
+                <span>現在地から1km圏内</span>
             </div>
         </div>
     </div>
@@ -123,22 +145,23 @@
             <div class="smoke-particle" style="animation-delay: 0s;"></div>
             <div class="smoke-particle" style="animation-delay: 1s;"></div>
             <div class="smoke-particle" style="animation-delay: 2s;"></div>
-            
+
             <!-- Shisha Base Icon Placeholder -->
-            <div class="w-8 h-12 border-2 border-amber-500/50 rounded-b-xl relative z-10 bg-slate-900/50 backdrop-blur-sm mb-12">
+            <div
+                class="w-8 h-12 border-2 border-amber-500/50 rounded-b-xl relative z-10 bg-slate-900/50 backdrop-blur-sm mb-12">
                 <div class="absolute bottom-0 w-full h-1/2 bg-amber-500/20 rounded-b-lg animate-pulse"></div>
             </div>
         </div>
-        <p class="text-amber-200/80 font-light tracking-widest text-sm animate-pulse mt-4">SEARCHING...</p>
+        <p class="text-amber-200/80 font-light tracking-widest text-sm animate-pulse mt-4">検索中...</p>
     </div>
 
     <!-- Screen 3: Results (Hidden by default) -->
     <div id="results-screen" class="hidden w-full max-w-xl pb-20">
         <div class="flex items-center mb-6 pt-4">
             <button onclick="goBack()" class="mr-4 p-2 rounded-full hover:bg-white/10 transition-colors">
-               <i data-lucide="arrow-left" class="w-6 h-6 text-amber-500"></i>
+                <i data-lucide="arrow-left" class="w-6 h-6 text-amber-500"></i>
             </button>
-            <h1 class="text-2xl font-bold text-gold-gradient">Nearby Shisha</h1>
+            <h1 class="text-2xl font-bold text-gold-gradient">近くのシーシャ屋</h1>
         </div>
 
         <div id="results-container" class="space-y-4">
@@ -146,8 +169,8 @@
         </div>
 
         <div id="error-message" class="hidden text-center py-8 text-red-400">
-            <p>Failed to find location.</p>
-            <button onclick="startSearch()" class="mt-4 underline">Retry</button>
+            <p>位置情報を取得できませんでした。</p>
+            <button onclick="startSearch()" class="mt-4 underline">再試行</button>
         </div>
     </div>
 
@@ -159,57 +182,57 @@
         const MOCK_PLACES = [
             {
                 id: 'mock-1',
-                name: 'Shisha Cafe & Bar MOCK',
+                name: 'シーシャカフェ＆バー MOCK',
                 rating: 4.8,
                 reviews: 120,
-                address: 'Shibuya, Tokyo',
+                address: '東京都渋谷区',
                 isOpen: true,
-                topReview: 'Best shisha in Shibuya! The atmosphere is amazing and the staff is super friendly.'
+                topReview: '渋谷で一番美味しいシーシャ！雰囲気が最高で店員さんもフレンドリーです。'
             },
             {
                 id: 'mock-2',
-                name: 'Hookah Lounge MIST',
+                name: 'Hookah Lounge 霧 (MIST)',
                 rating: 4.5,
                 reviews: 85,
-                address: 'Shinjuku, Tokyo',
+                address: '東京都新宿区',
                 isOpen: true,
-                topReview: 'Great flavors and nice staff. A bit crowded on weekends but worth it.'
+                topReview: 'フレーバーの種類が豊富。週末は少し混んでるけど行く価値あり。'
             },
             {
                 id: 'mock-3',
-                name: 'Desert Smoke Roppongi',
+                name: 'Desert Smoke 六本木',
                 rating: 4.2,
                 reviews: 50,
-                address: 'Roppongi, Tokyo',
+                address: '東京都港区六本木',
                 isOpen: false,
-                topReview: 'Hidden gem in Roppongi. Very chill vibes for working or relaxing.'
+                topReview: '六本木の隠れ家。作業やリラックスに最適でとても落ち着く。'
             },
-             {
+            {
                 id: 'mock-4',
-                name: 'Blue Mist Akihabara',
+                name: 'Blue Mist 秋葉原',
                 rating: 3.9,
                 reviews: 210,
-                address: 'Akihabara, Tokyo',
+                address: '東京都千代田区秋葉原',
                 isOpen: true,
-                topReview: 'Cheap and good quality. Good for groups.'
+                topReview: 'コスパが良くて美味しい。グループで行くのに良い。'
             },
-             {
+            {
                 id: 'mock-5',
-                name: 'Sultan\'s Oasis',
+                name: 'Sultan\'s Oasis 銀座',
                 rating: 4.7,
                 reviews: 32,
-                address: 'Ginza, Tokyo',
+                address: '東京都中央区銀座',
                 isOpen: true,
-                topReview: 'Luxury experience. The interior design is authentic Middle Eastern style.'
+                topReview: 'ラグジュアリーな体験。内装が本格的な中東スタイルで素晴らしい。'
             }
         ];
 
         // --- Logic ---
         function startSearch() {
             showScreen('loading-screen');
-            
+
             if (!navigator.geolocation) {
-                showError("Geolocation is not supported by your browser.");
+                showError("お使いのブラウザは位置情報をサポートしていません。");
                 return;
             }
 
@@ -220,7 +243,7 @@
                     setTimeout(() => {
                         renderResults(MOCK_PLACES);
                         showScreen('results-screen');
-                    }, 2000); 
+                    }, 2000);
                 },
                 (error) => {
                     // Error: Fallback to mock data anyway for demo purposes (or show error)
@@ -236,21 +259,21 @@
         function renderResults(places) {
             const container = document.getElementById('results-container');
             container.innerHTML = '';
-            
+
             if (places.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-500">No places found.</p>';
+                container.innerHTML = '<p class="text-center text-gray-500">お店が見つかりませんでした。</p>';
                 return;
             }
 
             places.forEach(place => {
                 const card = document.createElement('div');
                 card.className = 'glass-card rounded-xl p-6 mb-4 transform transition-all hover:scale-[1.02] hover:bg-white/5 border border-white/10 group animate-fade-in';
-                
+
                 // Star generation
                 const fullStars = Math.floor(place.rating);
                 let starsHtml = '';
-                for(let i=0; i<fullStars; i++) starsHtml += '<i data-lucide="star" class="w-4 h-4 fill-amber-400 text-amber-400 inline"></i>';
-                if(place.rating % 1 !== 0) starsHtml += '<i data-lucide="star-half" class="w-4 h-4 fill-amber-400 text-amber-400 inline"></i>';
+                for (let i = 0; i < fullStars; i++) starsHtml += '<i data-lucide="star" class="w-4 h-4 fill-amber-400 text-amber-400 inline"></i>';
+                if (place.rating % 1 !== 0) starsHtml += '<i data-lucide="star-half" class="w-4 h-4 fill-amber-400 text-amber-400 inline"></i>';
 
                 card.innerHTML = `
                     <div class="flex justify-between items-start mb-2">
@@ -258,14 +281,14 @@
                             ${place.name}
                         </h3>
                         <span class="text-xs px-2 py-1 rounded-full border ${place.isOpen ? 'border-green-500/50 text-green-400 bg-green-900/20' : 'border-red-500/50 text-red-400 bg-red-900/20'}">
-                            ${place.isOpen ? 'OPEN' : 'CLOSED'}
+                            ${place.isOpen ? '営業中' : '営業時間外'}
                         </span>
                     </div>
 
                     <div class="flex items-center gap-2 mb-3">
                         <div class="flex items-center">${starsHtml}</div>
                         <span class="text-sm font-medium text-amber-200">${place.rating}</span>
-                        <span class="text-xs text-gray-500">(${place.reviews})</span>
+                        <span class="text-xs text-gray-500">(${place.reviews}件)</span>
                     </div>
 
                     <div class="flex items-start gap-2 text-sm text-gray-300 mb-4">
@@ -280,7 +303,7 @@
                 `;
                 container.appendChild(card);
             });
-            
+
             // Re-run icons for new elements
             lucide.createIcons();
         }
@@ -291,7 +314,7 @@
                 if (id === screenId) {
                     el.classList.remove('hidden');
                     el.classList.add('flex');
-                    if(id === 'results-screen') {
+                    if (id === 'results-screen') {
                         el.classList.remove('flex'); // Results is block usually
                     }
                 } else {
@@ -302,16 +325,17 @@
         }
 
         function goBack() {
-             showScreen('landing-screen');
+            showScreen('landing-screen');
         }
-        
+
         function showError(msg) {
-             const loading = document.getElementById('loading-screen');
-             loading.classList.add('hidden');
-             alert(msg);
-             showScreen('landing-screen');
+            const loading = document.getElementById('loading-screen');
+            loading.classList.add('hidden');
+            alert(msg);
+            showScreen('landing-screen');
         }
 
     </script>
 </body>
+
 </html>
