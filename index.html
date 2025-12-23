@@ -196,16 +196,68 @@
 
         // --- Mock Data (Fallback) ---
         // APIキー未設定時用のデモデータ（1km圏内想定）
+        // --- Mock Data (Fallback) ---
+        // APIキー未設定時用のデモデータ
         const MOCK_PLACES = [
             {
-                name: '【デモ】Shisha Lounge Example',
+                name: '【デモ】シーシャカフェ 渋谷店',
                 rating: 4.8,
                 reviews: 120,
-                address: '東京都デモ区 (キー未設定)',
+                address: '東京都渋谷区...',
                 isOpen: true,
-                distance: 0.3,
+                distance: 0.3, // 一番近い
                 place_id: '',
-                topReview: 'APIキーを設定すると、実際のGoogleマップ検索結果が表示されます。'
+                topReview: 'とても落ち着く空間でした。フレーバーの種類も豊富です。'
+            },
+            {
+                name: '【デモ】Hookah Lounge 六本木',
+                rating: 4.5,
+                reviews: 85,
+                address: '東京都港区...',
+                isOpen: true,
+                distance: 2.5,
+                place_id: '',
+                topReview: '深夜まで営業していて便利。'
+            },
+            {
+                name: '【デモ】Chill Space 新宿',
+                rating: 3.2,
+                reviews: 40,
+                address: '東京都新宿区...',
+                isOpen: true,
+                distance: 1.2,
+                place_id: '',
+                topReview: '駅近でアクセスが良い。'
+            },
+            {
+                name: '【デモ】Shisha Bar 上野',
+                rating: 4.0,
+                reviews: 200,
+                address: '東京都台東区...',
+                isOpen: true,
+                distance: 4.8, // 遠い
+                place_id: '',
+                topReview: '賑やかなお店です。'
+            },
+            {
+                name: '【デモ】Hidden Gem 恵比寿',
+                rating: 4.9,
+                reviews: 10,
+                address: '東京都渋谷区...',
+                isOpen: true,
+                distance: 1.8,
+                place_id: '',
+                topReview: '隠れ家的な雰囲気。デートにおすすめ。'
+            },
+            {
+                name: '【デモ】遠すぎるシーシャ屋 (表示されないはず)',
+                rating: 4.0,
+                reviews: 5,
+                address: '東京都...',
+                isOpen: true,
+                distance: 6.0, // 5km圏外
+                place_id: '',
+                topReview: '遠い...'
             }
         ];
 
@@ -218,7 +270,11 @@
             if (scriptTag && scriptTag.src.includes('YOUR_API_KEY')) {
                 console.warn("API Key not set. Forcing Mock Data.");
                 setTimeout(() => {
-                    renderResults(MOCK_PLACES, true);
+                    // Mock Data Sorting & Limiting
+                    const sortedMock = MOCK_PLACES
+                        .sort((a, b) => a.distance - b.distance)
+                        .slice(0, 5);
+                    renderResults(sortedMock, true);
                     showScreen('results-screen');
                 }, 1500);
                 return;
@@ -248,7 +304,11 @@
                     } else {
                         console.warn("Google Maps API not ready. Using fallback.");
                         setTimeout(() => {
-                            renderResults(MOCK_PLACES, true);
+                            // Mock Data Sorting & Limiting
+                            const sortedMock = MOCK_PLACES
+                                .sort((a, b) => a.distance - b.distance)
+                                .slice(0, 5);
+                            renderResults(sortedMock, true);
                             showScreen('results-screen');
                         }, 1500);
                     }
@@ -281,7 +341,11 @@
 
                     // エラー時もデモデータを表示してあげるほうが親切
                     setTimeout(() => {
-                        renderResults(MOCK_PLACES, true);
+                        // Mock Data Sorting & Limiting
+                        const sortedMock = MOCK_PLACES
+                            .sort((a, b) => a.distance - b.distance)
+                            .slice(0, 5);
+                        renderResults(sortedMock, true);
                         showScreen('results-screen');
                     }, 1000);
                 },
@@ -377,7 +441,11 @@
                 });
             } catch (e) {
                 console.error("Service Error:", e);
-                renderResults(MOCK_PLACES, true);
+                // Mock Data Sorting & Limiting
+                const sortedMock = MOCK_PLACES
+                    .sort((a, b) => a.distance - b.distance)
+                    .slice(0, 5);
+                renderResults(sortedMock, true);
                 showScreen('results-screen');
             }
         }
