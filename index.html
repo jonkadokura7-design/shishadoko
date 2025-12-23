@@ -253,9 +253,29 @@
                 },
                 (error) => {
                     console.warn("Location failed:", error);
-                    let msg = "位置情報の取得に失敗しました。";
-                    if (error.code === error.TIMEOUT) msg += " (タイムアウト)";
-                    alert(msg + "\nデモデータを表示します。");
+                    let msg = "位置情報の取得に失敗しました。\n";
+
+                    switch (error.code) {
+                        case error.PERMISSION_DENIED:
+                            msg += "エラー: 位置情報の利用が許可されていません。\nブラウザの設定でシーシャどこ？の位置情報利用を許可してください。";
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            msg += "エラー: 現在地情報を取得できませんでした。\n電波状況の良い場所でお試しください。";
+                            break;
+                        case error.TIMEOUT:
+                            msg += "エラー: タイムアウトしました。\nもう一度「今すぐ探す」を押してください。";
+                            break;
+                        default:
+                            msg += "エラー: 原因不明のエラーが発生しました。(" + error.message + ")";
+                            break;
+                    }
+
+                    // HTTPS check warning
+                    if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                        msg += "\n\n⚠️ 重要: セキュリティ上の理由から、この機能はHTTPS接続（GitHub Pagesなど）でしか動作しない可能性があります。";
+                    }
+
+                    alert(msg + "\n\nデモデータを表示します。");
 
                     // エラー時もデモデータを表示してあげるほうが親切
                     setTimeout(() => {
