@@ -355,10 +355,12 @@
 
         function fetchRealPlaces(location) {
             // 2. Googleマップで「シーシャ」と検索
+            // "rankBy: DISTANCE" を使用して、人気順ではなく純粋な距離順で取得する
+            // ※ rankBy: DISTANCE を使う場合、radiusは指定できません。
             const request = {
                 location: location,
-                radius: '5000', // 4. 5キロ圏内を検索基準にする
                 keyword: 'シーシャ',
+                rankBy: google.maps.places.RankBy.DISTANCE,
                 openNow: true // 3. 営業中のお店のみ
             };
 
