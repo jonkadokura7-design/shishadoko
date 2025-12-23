@@ -174,11 +174,6 @@
         </div>
     </div>
 
-    <!-- Google Maps API Script -->
-    <!-- 重要: 'YOUR_API_KEY' を取得した実際のGoogle Maps APIキーに置き換えてください -->
-    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&callback=initMap" async
-        defer></script>
-
     <script>
         // Initialize Icons
         lucide.createIcons();
@@ -186,13 +181,15 @@
         let map;
         let service;
         let userLat, userLng;
+        let isApiLoaded = false;
 
         // APIロード後の初期化
-        function initMap() {
+        window.initMap = function () {
             const mapNode = document.createElement('div');
             // 初期座標は仮（東京）
             map = new google.maps.Map(mapNode, { center: { lat: 35.6895, lng: 139.6917 }, zoom: 15 });
             service = new google.maps.places.PlacesService(map);
+            isApiLoaded = true;
         }
 
         // --- Mock Data (Fallback) ---
@@ -214,10 +211,27 @@
         function startSearch() {
             showScreen('loading-screen');
 
+            // Safety Check: API KeyがデフォルトのままならAPIを呼ばない
+            const scriptTag = document.getElementById('google-maps-script');
+            if (scriptTag && scriptTag.src.includes('YOUR_API_KEY')) {
+                console.warn("API Key not set. Forcing Mock Data.");
+                setTimeout(() => {
+                    renderResults(MOCK_PLACES, true);
+                    showScreen('results-screen');
+                }, 1500);
+                return;
+            }
+
             if (!navigator.geolocation) {
                 showError("お使いのブラウザは位置情報をサポートしていません。");
                 return;
             }
+
+            // タイムアウト設定 (10秒)
+            const options = {
+                timeout: 10000,
+                maximumAge: 0
+            };
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -226,10 +240,11 @@
                     userLng = position.coords.longitude;
                     const userLocation = { lat: userLat, lng: userLng };
 
-                    if (window.google && window.google.maps && service) {
+                    // check isApiLoaded instead of just window.google
+                    if (isApiLoaded && service) {
                         fetchRealPlaces(userLocation);
                     } else {
-                        console.warn("Google Maps API not loaded. Using fallback.");
+                        console.warn("Google Maps API not ready. Using fallback.");
                         setTimeout(() => {
                             renderResults(MOCK_PLACES, true);
                             showScreen('results-screen');
@@ -238,9 +253,17 @@
                 },
                 (error) => {
                     console.warn("Location failed:", error);
-                    alert("位置情報の取得に失敗しました。");
-                    showScreen('landing-screen');
-                }
+                    let msg = "位置情報の取得に失敗しました。";
+                    if (error.code === error.TIMEOUT) msg += " (タイムアウト)";
+                    alert(msg + "\nデモデータを表示します。");
+
+                    // エラー時もデモデータを表示してあげるほうが親切
+                    setTimeout(() => {
+                        renderResults(MOCK_PLACES, true);
+                        showScreen('results-screen');
+                    }, 1000);
+                },
+                options
             );
         }
 
@@ -253,53 +276,62 @@
                 openNow: true // 3. 営業中のお店のみ
             };
 
-            service.nearbySearch(request, (results, status) => {
-                if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+            try {
+                service.nearbySearch(request, (results, status) => {
+                    if (status === google.maps.places.PlacesServiceStatus.OK && results) {
 
-                    // データ整形とクライアントサイドフィルタリング
-                    let candidates = results.map(place => {
-                        const distanceKm = getDistanceFromLatLonInKm(
-                            location.lat, location.lng,
-                            place.geometry.location.lat(),
-                            place.geometry.location.lng()
-                        );
-                        return {
-                            name: place.name,
-                            rating: place.rating || 0,
-                            reviews: place.user_ratings_total || 0,
-                            address: place.vicinity || place.formatted_address,
-                            isOpen: place.opening_hours ? place.opening_hours.isOpen() : true,
-                            distance: Math.round(distanceKm * 100) / 100,
-                            place_id: place.place_id,
-                            topReview: 'Googleマップで詳細を見る',
-                            geometry: place.geometry
-                        };
-                    });
+                        // データ整形とクライアントサイドフィルタリング
+                        let candidates = results.map(place => {
+                            const distanceKm = getDistanceFromLatLonInKm(
+                                location.lat, location.lng,
+                                place.geometry.location.lat(),
+                                place.geometry.location.lng()
+                            );
+                            return {
+                                name: place.name,
+                                rating: place.rating || 0,
+                                reviews: place.user_ratings_total || 0,
+                                address: place.vicinity || place.formatted_address,
+                                isOpen: place.opening_hours ? place.opening_hours.isOpen() : true,
+                                distance: Math.round(distanceKm * 100) / 100,
+                                place_id: place.place_id,
+                                topReview: 'Googleマップで詳細を見る',
+                                geometry: place.geometry
+                            };
+                        });
 
-                    // 2. レビューで3.5以上のお店のみ
-                    // 4. 1キロ圏内 (Strict filtering)
-                    candidates = candidates.filter(p => p.rating >= 3.5 && p.distance <= 1.0);
+                        // 2. レビューで3.5以上のお店のみ
+                        // 4. 1キロ圏内 (Strict filtering)
+                        candidates = candidates.filter(p => p.rating >= 3.5 && p.distance <= 1.0);
 
-                    // 距離順にソート
-                    candidates.sort((a, b) => a.distance - b.distance);
+                        // 距離順にソート
+                        candidates.sort((a, b) => a.distance - b.distance);
 
-                    // 5. 最大5つまで表示
-                    const finalResults = candidates.slice(0, 5);
+                        // 5. 最大5つまで表示
+                        const finalResults = candidates.slice(0, 5);
 
-                    renderResults(finalResults, false);
-                    showScreen('results-screen');
+                        renderResults(finalResults, false);
+                        showScreen('results-screen');
 
-                } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-                    // 4. お店がない場合
-                    renderResults([], false);
-                    showScreen('results-screen');
-                } else {
-                    console.error("Places Search failed:", status);
-                    // エラー時はデモデータを表示するか、エラーメッセージ
-                    alert("検索中にエラーが発生しました: " + status);
-                    showScreen('landing-screen');
-                }
-            });
+                    } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+                        // 4. お店がない場合
+                        renderResults([], false);
+                        showScreen('results-screen');
+                    } else {
+                        console.error("Places Search failed:", status);
+                        // エラー時はデモデータを表示
+                        alert("検索エラー (Status: " + status + ")\nデモデータを表示します。");
+                        setTimeout(() => {
+                            renderResults(MOCK_PLACES, true);
+                            showScreen('results-screen');
+                        }, 1000);
+                    }
+                });
+            } catch (e) {
+                console.error("Service Error:", e);
+                renderResults(MOCK_PLACES, true);
+                showScreen('results-screen');
+            }
         }
 
         // 6. お店をクリックするとGoogleマップで現在地からそのお店までの経路を表示
@@ -317,7 +349,7 @@
             if (isMock) {
                 const alertDiv = document.createElement('div');
                 alertDiv.className = 'bg-red-900/50 text-red-200 border border-red-500/50 p-4 rounded-lg mb-4 text-sm';
-                alertDiv.innerHTML = '⚠️ <strong>注意:</strong> APIキー未設定のためデモデータを表示中。<br>index.htmlのYOUR_API_KEYを書き換えてください。';
+                alertDiv.innerHTML = '⚠️ <strong>注意:</strong> Google Maps APIなどが利用できないため、デモデータを表示しています。<br>YOUR_API_KEYの設定や通信環境を確認してください。';
                 container.appendChild(alertDiv);
             }
 
@@ -437,6 +469,10 @@
         }
 
     </script>
+    <!-- Google Maps API Script: Moved to bottom to ensure initMap is defined -->
+    <script id="google-maps-script"
+        src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&callback=initMap" async
+        defer></script>
 </body>
 
 </html>
