@@ -134,7 +134,7 @@
             </div>
             <div class="flex items-center gap-1">
                 <i data-lucide="clock" class="w-4 h-4 text-amber-500"></i>
-                <span>営業中のお店・周辺</span>
+                <span>1km圏内・営業中のみ</span>
             </div>
         </div>
     </div>
@@ -174,60 +174,43 @@
         </div>
     </div>
 
+    <!-- Google Maps API Script -->
+    <!-- 重要: 'YOUR_API_KEY' を取得した実際のGoogle Maps APIキーに置き換えてください -->
+    <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&libraries=places&callback=initMap" async
+        defer></script>
+
     <script>
         // Initialize Icons
         lucide.createIcons();
 
-        // --- Mock Data ---
+        let map;
+        let service;
+        let userLat, userLng;
+
+        // APIロード後の初期化
+        function initMap() {
+            const mapNode = document.createElement('div');
+            // 初期座標は仮（東京）
+            map = new google.maps.Map(mapNode, { center: { lat: 35.6895, lng: 139.6917 }, zoom: 15 });
+            service = new google.maps.places.PlacesService(map);
+        }
+
+        // --- Mock Data (Fallback) ---
+        // APIキー未設定時用のデモデータ（1km圏内想定）
         const MOCK_PLACES = [
             {
-                id: 'mock-1',
-                name: 'シーシャカフェ＆バー MOCK',
+                name: '【デモ】Shisha Lounge Example',
                 rating: 4.8,
                 reviews: 120,
-                address: '東京都渋谷区',
+                address: '東京都デモ区 (キー未設定)',
                 isOpen: true,
-                topReview: '渋谷で一番美味しいシーシャ！雰囲気が最高で店員さんもフレンドリーです。'
-            },
-            {
-                id: 'mock-2',
-                name: 'Hookah Lounge 霧 (MIST)',
-                rating: 4.5,
-                reviews: 85,
-                address: '東京都新宿区',
-                isOpen: true,
-                topReview: 'フレーバーの種類が豊富。週末は少し混んでるけど行く価値あり。'
-            },
-            {
-                id: 'mock-3',
-                name: 'Desert Smoke 六本木',
-                rating: 4.2,
-                reviews: 50,
-                address: '東京都港区六本木',
-                isOpen: false,
-                topReview: '六本木の隠れ家。作業やリラックスに最適でとても落ち着く。'
-            },
-            {
-                id: 'mock-4',
-                name: 'Blue Mist 秋葉原',
-                rating: 3.9,
-                reviews: 210,
-                address: '東京都千代田区秋葉原',
-                isOpen: true,
-                topReview: 'コスパが良くて美味しい。グループで行くのに良い。'
-            },
-            {
-                id: 'mock-5',
-                name: 'Sultan\'s Oasis 銀座',
-                rating: 4.7,
-                reviews: 32,
-                address: '東京都中央区銀座',
-                isOpen: true,
-                topReview: 'ラグジュアリーな体験。内装が本格的な中東スタイルで素晴らしい。'
+                distance: 0.3,
+                place_id: '',
+                topReview: 'APIキーを設定すると、実際のGoogleマップ検索結果が表示されます。'
             }
         ];
 
-        // --- Logic ---
+        // 1. トップページで「今すぐ探す」のボタンを押すと現在地のGPS情報を求める
         function startSearch() {
             showScreen('loading-screen');
 
@@ -238,36 +221,124 @@
 
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    // Success: normally we'd call API here. 
-                    // Simulating API delay and returning mock data.
-                    setTimeout(() => {
-                        renderResults(MOCK_PLACES);
-                        showScreen('results-screen');
-                    }, 2000);
+                    // 2. そこで取得したGPS情報を元に...
+                    userLat = position.coords.latitude;
+                    userLng = position.coords.longitude;
+                    const userLocation = { lat: userLat, lng: userLng };
+
+                    if (window.google && window.google.maps && service) {
+                        fetchRealPlaces(userLocation);
+                    } else {
+                        console.warn("Google Maps API not loaded. Using fallback.");
+                        setTimeout(() => {
+                            renderResults(MOCK_PLACES, true);
+                            showScreen('results-screen');
+                        }, 1500);
+                    }
                 },
                 (error) => {
-                    // Error: Fallback to mock data anyway for demo purposes (or show error)
-                    console.warn("Location failed, showing mock data:", error);
-                    setTimeout(() => {
-                        renderResults(MOCK_PLACES);
-                        showScreen('results-screen');
-                    }, 2000);
+                    console.warn("Location failed:", error);
+                    alert("位置情報の取得に失敗しました。");
+                    showScreen('landing-screen');
                 }
             );
         }
 
-        function renderResults(places) {
+        function fetchRealPlaces(location) {
+            // 2. Googleマップで「シーシャ」と検索
+            const request = {
+                location: location,
+                radius: '1000', // 4. 1キロ圏内を検索基準にする
+                keyword: 'シーシャ',
+                openNow: true // 3. 営業中のお店のみ
+            };
+
+            service.nearbySearch(request, (results, status) => {
+                if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+
+                    // データ整形とクライアントサイドフィルタリング
+                    let candidates = results.map(place => {
+                        const distanceKm = getDistanceFromLatLonInKm(
+                            location.lat, location.lng,
+                            place.geometry.location.lat(),
+                            place.geometry.location.lng()
+                        );
+                        return {
+                            name: place.name,
+                            rating: place.rating || 0,
+                            reviews: place.user_ratings_total || 0,
+                            address: place.vicinity || place.formatted_address,
+                            isOpen: place.opening_hours ? place.opening_hours.isOpen() : true,
+                            distance: Math.round(distanceKm * 100) / 100,
+                            place_id: place.place_id,
+                            topReview: 'Googleマップで詳細を見る',
+                            geometry: place.geometry
+                        };
+                    });
+
+                    // 2. レビューで3.5以上のお店のみ
+                    // 4. 1キロ圏内 (Strict filtering)
+                    candidates = candidates.filter(p => p.rating >= 3.5 && p.distance <= 1.0);
+
+                    // 距離順にソート
+                    candidates.sort((a, b) => a.distance - b.distance);
+
+                    // 5. 最大5つまで表示
+                    const finalResults = candidates.slice(0, 5);
+
+                    renderResults(finalResults, false);
+                    showScreen('results-screen');
+
+                } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
+                    // 4. お店がない場合
+                    renderResults([], false);
+                    showScreen('results-screen');
+                } else {
+                    console.error("Places Search failed:", status);
+                    // エラー時はデモデータを表示するか、エラーメッセージ
+                    alert("検索中にエラーが発生しました: " + status);
+                    showScreen('landing-screen');
+                }
+            });
+        }
+
+        // 6. お店をクリックするとGoogleマップで現在地からそのお店までの経路を表示
+        function openDirections(name, place_id) {
+            // 目的地へのルート検索URL
+            // queryに店名、destination_place_idにIDを指定することで精度向上
+            const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(name)}&destination_place_id=${place_id}`;
+            window.open(url, '_blank');
+        }
+
+        function renderResults(places, isMock) {
             const container = document.getElementById('results-container');
             container.innerHTML = '';
 
+            if (isMock) {
+                const alertDiv = document.createElement('div');
+                alertDiv.className = 'bg-red-900/50 text-red-200 border border-red-500/50 p-4 rounded-lg mb-4 text-sm';
+                alertDiv.innerHTML = '⚠️ <strong>注意:</strong> APIキー未設定のためデモデータを表示中。<br>index.htmlのYOUR_API_KEYを書き換えてください。';
+                container.appendChild(alertDiv);
+            }
+
+            // 4. 1キロ圏内にお店がない場合は、「周辺にご紹介できるシーシャ屋はありません。」
             if (places.length === 0) {
-                container.innerHTML = '<p class="text-center text-gray-500">お店が見つかりませんでした。</p>';
+                container.innerHTML = `
+                    <div class="text-center py-10 space-y-4">
+                        <p class="text-lg text-gray-300 font-medium">周辺にご紹介できるシーシャ屋はありません。</p>
+                        <p class="text-sm text-gray-500">条件を変更するか、場所を変えて再度お試しください。</p>
+                        <button onclick="startSearch()" class="text-amber-500 underline hover:text-amber-400">再検索</button>
+                    </div>
+                `;
                 return;
             }
 
             places.forEach(place => {
                 const card = document.createElement('div');
-                card.className = 'glass-card rounded-xl p-6 mb-4 transform transition-all hover:scale-[1.02] hover:bg-white/5 border border-white/10 group animate-fade-in';
+                card.className = 'glass-card rounded-xl p-6 mb-4 transform transition-all hover:scale-[1.02] hover:bg-white/5 border border-white/10 group animate-fade-in cursor-pointer relative overflow-hidden';
+
+                // 6. クリックで経路表示
+                card.onclick = () => openDirections(place.name, place.place_id);
 
                 // Star generation
                 const fullStars = Math.floor(place.rating);
@@ -276,19 +347,31 @@
                 if (place.rating % 1 !== 0) starsHtml += '<i data-lucide="star-half" class="w-4 h-4 fill-amber-400 text-amber-400 inline"></i>';
 
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-2">
+                    <!-- Link Hint -->
+                    <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-amber-500 text-xs font-bold">
+                         <span>経路案内</span>
+                         <i data-lucide="navigation" class="w-3 h-3"></i>
+                    </div>
+
+                    <div class="flex justify-between items-start mb-2 pr-6">
                         <h3 class="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-100 to-amber-400 group-hover:from-amber-200 group-hover:to-amber-500">
                             ${place.name}
                         </h3>
-                        <span class="text-xs px-2 py-1 rounded-full border ${place.isOpen ? 'border-green-500/50 text-green-400 bg-green-900/20' : 'border-red-500/50 text-red-400 bg-red-900/20'}">
-                            ${place.isOpen ? '営業中' : '営業時間外'}
-                        </span>
                     </div>
 
-                    <div class="flex items-center gap-2 mb-3">
-                        <div class="flex items-center">${starsHtml}</div>
-                        <span class="text-sm font-medium text-amber-200">${place.rating}</span>
-                        <span class="text-xs text-gray-500">(${place.reviews}件)</span>
+                    <div class="flex items-center gap-4 mb-3">
+                        <div class="flex items-center gap-1">
+                            <div class="flex items-center">${starsHtml}</div>
+                            <span class="text-sm font-medium text-amber-200">${place.rating}</span>
+                            <span class="text-xs text-gray-500">(${place.reviews})</span>
+                        </div>
+                        <div class="flex items-center gap-1 text-xs text-amber-500 border border-amber-500/30 px-2 py-0.5 rounded">
+                             <i data-lucide="map-pin" class="w-3 h-3"></i>
+                             <span>${place.distance}km</span>
+                        </div>
+                        <span class="text-xs px-2 py-0.5 rounded-full border border-green-500/50 text-green-400 bg-green-900/20">
+                            営業中
+                        </span>
                     </div>
 
                     <div class="flex items-start gap-2 text-sm text-gray-300 mb-4">
@@ -297,8 +380,8 @@
                     </div>
 
                     <div class="bg-black/20 rounded-lg p-3 text-sm italic text-gray-400 border-l-2 border-amber-500">
-                        <i data-lucide="message-square" class="w-3 h-3 inline mr-2 text-amber-500/70"></i>
-                        "${place.topReview}"
+                         <i data-lucide="message-square" class="w-3 h-3 inline mr-2 text-amber-500/70"></i>
+                         "${place.topReview}"
                     </div>
                 `;
                 container.appendChild(card);
@@ -308,6 +391,24 @@
             lucide.createIcons();
         }
 
+        // 距離計算Util
+        function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1);
+            const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat1)) *
+                Math.sin(dLon / 2) * Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            return R * c;
+        }
+
+        function deg2rad(deg) {
+            return deg * (Math.PI / 180);
+        }
+
+        // --- Screen Management ---
         function showScreen(screenId) {
             ['landing-screen', 'loading-screen', 'results-screen'].forEach(id => {
                 const el = document.getElementById(id);
@@ -315,7 +416,7 @@
                     el.classList.remove('hidden');
                     el.classList.add('flex');
                     if (id === 'results-screen') {
-                        el.classList.remove('flex'); // Results is block usually
+                        el.classList.remove('flex');
                     }
                 } else {
                     el.classList.add('hidden');
