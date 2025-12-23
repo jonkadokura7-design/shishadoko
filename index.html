@@ -227,9 +227,9 @@
                 return;
             }
 
-            // タイムアウト設定 (10秒)
+            // タイムアウト設定 (30秒)
             const options = {
-                timeout: 10000,
+                timeout: 30000,
                 maximumAge: 0
             };
 
@@ -315,7 +315,7 @@
                                 isOpen: place.opening_hours ? place.opening_hours.isOpen() : true,
                                 distance: Math.round(distanceKm * 100) / 100,
                                 place_id: place.place_id,
-                                topReview: 'Googleマップで詳細を見る',
+                                topReview: '読み込み中...',
                                 geometry: place.geometry
                             };
                         });
@@ -330,8 +330,34 @@
                         // 5. 最大5つまで表示
                         const finalResults = candidates.slice(0, 5);
 
-                        renderResults(finalResults, false);
-                        showScreen('results-screen');
+                        // --- 詳細情報の取得 (レビュー) ---
+                        const detailPromises = finalResults.map(place => {
+                            return new Promise((resolve) => {
+                                const detailRequest = {
+                                    placeId: place.place_id,
+                                    fields: ['reviews']
+                                };
+                                service.getDetails(detailRequest, (placeDetails, detailStatus) => {
+                                    if (detailStatus === google.maps.places.PlacesServiceStatus.OK && placeDetails.reviews && placeDetails.reviews.length > 0) {
+                                        // 最初のレビューを取得
+                                        let reviewText = placeDetails.reviews[0].text;
+                                        if (reviewText.length > 60) {
+                                            reviewText = reviewText.substring(0, 60) + "...";
+                                        }
+                                        place.topReview = reviewText;
+                                    } else {
+                                        place.topReview = "（レビューがありません）";
+                                    }
+                                    resolve(place);
+                                });
+                            });
+                        });
+
+                        // 全ての詳細取得が終わったら表示
+                        Promise.all(detailPromises).then(updatedResults => {
+                            renderResults(updatedResults, false);
+                            showScreen('results-screen');
+                        });
 
                     } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
                         // 4. お店がない場合
