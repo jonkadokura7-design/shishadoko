@@ -136,7 +136,7 @@
             </div>
             <div class="flex items-center gap-1">
                 <i data-lucide="clock" class="w-4 h-4 text-amber-500"></i>
-                <span>2km圏内・営業中のみ</span>
+                <span>3km圏内・営業中のみ</span>
             </div>
         </div>
     </div>
@@ -293,7 +293,7 @@
             // 2. Googleマップで「シーシャ」と検索
             const request = {
                 location: location,
-                radius: '2000', // 4. 2キロ圏内を検索基準にする
+                radius: '3000', // 4. 3キロ圏内を検索基準にする
                 keyword: 'シーシャ',
                 openNow: true // 3. 営業中のお店のみ
             };
@@ -323,8 +323,8 @@
                         });
 
                         // 2. レビューで3.5以上のお店のみ
-                        // 4. 2キロ圏内 (Strict filtering)
-                        candidates = candidates.filter(p => p.rating >= 3.5 && p.distance <= 2.0);
+                        // 4. 3キロ圏内 (Strict filtering)
+                        candidates = candidates.filter(p => p.rating >= 3.5 && p.distance <= 3.0);
 
                         // 距離順にソート
                         candidates.sort((a, b) => a.distance - b.distance);
