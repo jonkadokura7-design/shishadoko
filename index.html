@@ -400,12 +400,12 @@
                         // 5. 最大5つまで表示
                         const finalResults = candidates.slice(0, 5);
 
-                        // --- 詳細情報の取得 (レビュー) ---
+                        // --- 詳細情報の取得 (レビュー・写真・価格) ---
                         const detailPromises = finalResults.map(place => {
                             return new Promise((resolve) => {
                                 const detailRequest = {
                                     placeId: place.place_id,
-                                    fields: ['reviews', 'photos']
+                                    fields: ['reviews', 'photos', 'price_level']
                                 };
                                 service.getDetails(detailRequest, (placeDetails, detailStatus) => {
                                     if (detailStatus === google.maps.places.PlacesServiceStatus.OK) {
@@ -422,8 +422,12 @@
 
                                         // 2. 写真取得
                                         if (placeDetails.photos && placeDetails.photos.length > 0) {
-                                            // 最大幅400pxで取得
                                             place.photoUrl = placeDetails.photos[0].getUrl({ maxWidth: 400 });
+                                        }
+
+                                        // 3. 価格帯取得 (詳細APIから補完)
+                                        if (placeDetails.price_level !== undefined) {
+                                            place.price_level = placeDetails.price_level;
                                         }
                                     } else {
                                         place.topReview = "（詳細取得エラー）";
