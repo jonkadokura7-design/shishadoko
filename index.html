@@ -384,6 +384,7 @@
                                 isOpen: place.opening_hours ? place.opening_hours.isOpen() : true,
                                 distance: Math.round(distanceKm * 100) / 100,
                                 place_id: place.place_id,
+                                price_level: place.price_level, // Price Level取得
                                 topReview: '読み込み中...',
                                 geometry: place.geometry
                             };
@@ -514,6 +515,25 @@
                        </div>`
                     : '';
 
+                // Price Level Logic
+                let priceText = '';
+                if (place.price_level !== undefined) {
+                    // Ref: Google Level 0: Free, 1: Cheap, 2: Moderate, 3: Expensive, 4: Very Expensive
+                    // Mapping based on common Japanese Shisha pricing
+                    switch (place.price_level) {
+                        case 0: priceText = '無料'; break;
+                        case 1: priceText = '〜¥2,000'; break;
+                        case 2: priceText = '¥2,000〜¥3,000'; break;
+                        case 3: priceText = '¥3,000〜¥5,000'; break;
+                        case 4: priceText = '¥5,000〜'; break;
+                        default: priceText = '';
+                    }
+                }
+                const priceHtml = priceText
+                    ? `<span class="text-xs px-2 py-0.5 rounded-full border border-purple-500/50 text-purple-300 bg-purple-900/20">${priceText}</span>`
+                    : '';
+
+
                 card.innerHTML = `
                     <!-- Link Hint -->
                     <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 text-amber-500 text-xs font-bold z-10">
@@ -535,6 +555,7 @@
                                     <div class="flex items-center">${starsHtml}</div>
                                     <span class="text-xs text-gray-400">(${place.reviews})</span>
                                 </div>
+                                ${priceHtml}
                                 <div class="flex items-center gap-1 text-xs text-amber-500 border border-amber-500/30 px-2 py-0.5 rounded">
                                      <i data-lucide="map-pin" class="w-3 h-3"></i>
                                      <span>${place.distance}km</span>
