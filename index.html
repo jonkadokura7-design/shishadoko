@@ -124,10 +124,34 @@
         </div>
 
         <button onclick="startSearch()"
-            class="group relative inline-flex h-14 w-64 items-center justify-center overflow-hidden rounded-full bg-amber-500 px-6 font-medium text-neutral-950 transition-all duration-300 hover:scale-105 hover:bg-amber-400 focus:outline-none glow-btn">
+            class="group relative inline-flex h-14 w-64 items-center justify-center overflow-hidden rounded-full bg-amber-500 px-6 font-medium text-neutral-950 transition-all duration-300 hover:scale-105 hover:bg-amber-400 focus:outline-none glow-btn shadow-lg z-10">
             <i data-lucide="map-pin" class="mr-2 h-5 w-5"></i>
             <span class="tracking-wider text-lg">今すぐ探す</span>
         </button>
+
+        <!-- Divider -->
+        <div class="relative w-full max-w-xs my-6 flex items-center justify-center">
+            <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-gray-600"></div>
+            </div>
+            <div class="relative bg-[#1a1025] px-4 text-sm text-gray-400">または</div>
+        </div>
+
+        <!-- Station Search -->
+        <div class="w-full max-w-xs flex flex-col gap-2 relative z-0">
+            <div class="relative group">
+                <input type="text" id="station-input" placeholder="駅名を入力 (例: 渋谷駅)"
+                    class="w-full h-12 rounded-lg bg-white/10 border border-white/20 px-4 text-white placeholder-gray-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all text-center backdrop-blur-sm">
+                <div
+                    class="absolute inset-0 rounded-lg bg-gradient-to-r from-amber-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none -z-10 blur-sm">
+                </div>
+            </div>
+            <button onclick="startStationSearch()"
+                class="h-10 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-amber-500 transition-all text-sm font-medium flex items-center justify-center gap-2 hover:border-amber-500/50">
+                <i data-lucide="search" class="w-4 h-4"></i>
+                <span>駅から探す (1km圏内)</span>
+            </button>
+        </div>
 
         <div class="flex gap-4 text-sm text-gray-500 mt-12">
             <div class="flex items-center gap-1">
@@ -261,8 +285,88 @@
             }
         ];
 
+        // 検索状態管理
+        let searchMode = 'current'; // 'current' or 'station'
+        let currentMaxDistance = 5.0; // Default 5km
+        let currentSearchLocation = null; // {lat, lng}
+
+        // 0. Station Search Input Enter Key Support
+        document.getElementById('station-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                startStationSearch();
+            }
+        });
+
+        // Station Search Function
+        function startStationSearch() {
+            const stationName = document.getElementById('station-input').value.trim();
+            if (!stationName) {
+                alert("駅名を入力してください。");
+                return;
+            }
+
+            // Append "駅" if not present to improve search accuracy, though user might input it
+            // const query = stationName.endsWith('駅') ? stationName : stationName + '駅';
+            const query = stationName;
+
+            showScreen('loading-screen');
+            searchMode = 'station';
+            currentMaxDistance = 1.0; // 1km radius for station search
+
+            // API Check
+            const scriptTag = document.getElementById('google-maps-script');
+            if (scriptTag && scriptTag.src.includes('YOUR_API_KEY')) {
+                console.warn("API Key not set. Forcing Mock Data for Station.");
+                setTimeout(() => {
+                    // Mock: Just return random subset or distance sort from "Station" (Mock Tokyo)
+                    // For demo, we just show same mock data but title updated
+                    renderResults(MOCK_PLACES.slice(0, 3), true);
+                    showScreen('results-screen');
+                    // Add station context to title
+                    updateResultTitle(`${query}周辺のシーシャ屋`);
+                }, 1500);
+                return;
+            }
+
+            if (!isApiLoaded || !service) {
+                // Retry or Fail
+                console.warn("Google Maps API not ready.");
+                // Fallback
+                setTimeout(() => {
+                    renderResults(MOCK_PLACES.slice(0, 3), true);
+                    showScreen('results-screen');
+                    updateResultTitle(`${query}周辺のシーシャ屋`);
+                }, 1500);
+                return;
+            }
+
+            // Geocode Station Name
+            const request = {
+                query: query,
+                fields: ['name', 'geometry'],
+            };
+
+            // Use PlacesService FindPlaceFromQuery or Geocoder
+            // Geocoder is better for "Shibuya Station" generally, but PlacesService works too.
+            // Let's use PlacesService since we already initialized it.
+            service.findPlaceFromQuery(request, (results, status) => {
+                if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+                    const location = results[0].geometry.location;
+                    const lat = location.lat();
+                    const lng = location.lng();
+                    currentSearchLocation = { lat, lng };
+
+                    fetchRealPlaces(currentSearchLocation, currentMaxDistance, `${results[0].name}周辺`);
+                } else {
+                    showError("駅が見つかりませんでした。別の名前で試してください。");
+                }
+            });
+        }
+
         // 1. トップページで「今すぐ探す」のボタンを押すと現在地のGPS情報を求める
         function startSearch() {
+            searchMode = 'current';
+            currentMaxDistance = 5.0; // Set back to 5km for current location search
             showScreen('loading-screen');
 
             // Safety Check: API KeyがデフォルトのままならAPIを呼ばない
@@ -301,7 +405,7 @@
 
                     // check isApiLoaded instead of just window.google
                     if (isApiLoaded && service) {
-                        fetchRealPlaces(userLocation);
+                        fetchRealPlaces(userLocation, currentMaxDistance, "近く");
                     } else {
                         console.warn("Google Maps API not ready. Using fallback.");
                         setTimeout(() => {
@@ -354,7 +458,7 @@
             );
         }
 
-        function fetchRealPlaces(location) {
+        function fetchRealPlaces(location, maxDistanceKm = 5.0, locationLabel = "近く") {
             // 2. Googleマップで「シーシャ」と検索
             // "rankBy: DISTANCE" を使用して、人気順ではなく純粋な距離順で取得する
             // ※ rankBy: DISTANCE を使う場合、radiusは指定できません。
@@ -391,8 +495,8 @@
                         });
 
                         // 2. レビュー制限を解除 (なるべく多く表示するため)
-                        // 4. 5キロ圏内 (Strict filtering)
-                        candidates = candidates.filter(p => p.distance <= 5.0);
+                        // 4. Distance Filtering (Variable)
+                        candidates = candidates.filter(p => p.distance <= maxDistanceKm);
 
                         // 距離順にソート
                         candidates.sort((a, b) => a.distance - b.distance);
@@ -440,12 +544,14 @@
                         // 全ての詳細取得が終わったら表示
                         Promise.all(detailPromises).then(updatedResults => {
                             renderResults(updatedResults, false);
+                            updateResultTitle(`${locationLabel}のシーシャ屋`);
                             showScreen('results-screen');
                         });
 
                     } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
                         // 4. お店がない場合
                         renderResults([], false);
+                        updateResultTitle(`${locationLabel}のシーシャ屋`);
                         showScreen('results-screen');
                     } else {
                         console.error("Places Search failed:", status);
@@ -489,11 +595,12 @@
 
             // 4. 1キロ圏内にお店がない場合は、「周辺にご紹介できるシーシャ屋はありません。」
             if (places.length === 0) {
+                let distanceMsg = currentMaxDistance === 1.0 ? "1km圏内" : "5km圏内";
                 container.innerHTML = `
                     <div class="text-center py-10 space-y-4">
-                        <p class="text-lg text-gray-300 font-medium">周辺にご紹介できるシーシャ屋はありません。</p>
+                        <p class="text-lg text-gray-300 font-medium">周辺(${distanceMsg})にご紹介できるシーシャ屋はありません。</p>
                         <p class="text-sm text-gray-500">条件を変更するか、場所を変えて再度お試しください。</p>
-                        <button onclick="startSearch()" class="text-amber-500 underline hover:text-amber-400">再検索</button>
+                        <button onclick="goBack()" class="text-amber-500 underline hover:text-amber-400">条件変更</button>
                     </div>
                 `;
                 return;
@@ -637,6 +744,11 @@
             loading.classList.add('hidden');
             alert(msg);
             showScreen('landing-screen');
+        }
+
+        function updateResultTitle(title) {
+            const titleEl = document.querySelector('#results-screen h1');
+            if (titleEl) titleEl.textContent = title;
         }
 
     </script>
