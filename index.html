@@ -617,6 +617,14 @@
 
                                         // 4. 詳細情報 (モーダル用)
                                         place.opening_hours_detail = placeDetails.opening_hours;
+                                        // Update isOpen using detailed info if available
+                                        if (placeDetails.opening_hours && typeof placeDetails.opening_hours.isOpen === 'function') {
+                                            try {
+                                                place.isOpen = placeDetails.opening_hours.isOpen();
+                                            } catch (err) {
+                                                console.warn('Error checking open status:', err);
+                                            }
+                                        }
                                         place.website = placeDetails.website;
                                         place.phone = placeDetails.formatted_phone_number;
 
@@ -759,8 +767,8 @@
                                      <i data-lucide="map-pin" class="w-3 h-3"></i>
                                      <span>${place.distance}km</span>
                                 </div>
-                                <span class="text-xs px-2 py-0.5 rounded-full border border-green-500/50 text-green-400 bg-green-900/20">
-                                    営業中
+                                <span class="text-xs px-2 py-0.5 rounded-full border ${place.isOpen ? 'border-green-500/50 text-green-400 bg-green-900/20' : 'border-red-500/50 text-red-400 bg-red-900/20'}">
+                                    ${place.isOpen ? '営業中' : '営業時間外'}
                                 </span>
                             </div>
 
