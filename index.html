@@ -342,6 +342,7 @@
                 isOpen: true,
                 distance: 4.8, // 遠い
                 place_id: '',
+                price_level: 2,
                 topReview: '賑やかなお店です。'
             },
             {
@@ -352,6 +353,7 @@
                 isOpen: true,
                 distance: 1.8,
                 place_id: '',
+                price_level: 3,
                 topReview: '隠れ家的な雰囲気。デートにおすすめ。'
             },
             {
@@ -362,6 +364,7 @@
                 isOpen: true,
                 distance: 6.0, // 5km圏外
                 place_id: '',
+                price_level: 1,
                 topReview: '遠い...'
             }
         ];
@@ -718,10 +721,11 @@
 
                 // Price Level Logic
                 let priceText = '';
-                if (place.price_level !== undefined) {
+                if (place.price_level !== undefined && place.price_level !== null) {
+                    const level = parseInt(place.price_level, 10);
                     // Ref: Google Level 0: Free, 1: Cheap, 2: Moderate, 3: Expensive, 4: Very Expensive
                     // Mapping based on common Japanese Shisha pricing
-                    switch (place.price_level) {
+                    switch (level) {
                         case 0: priceText = '無料'; break;
                         case 1: priceText = '〜¥2,000'; break;
                         case 2: priceText = '¥2,000〜¥3,000'; break;
@@ -731,7 +735,7 @@
                     }
                 }
                 const priceHtml = priceText
-                    ? `<span class="text-xs px-2 py-0.5 rounded-full border border-gray-500/50 text-gray-200 bg-gray-700/50">・${priceText}</span>`
+                    ? `<span class="text-xs px-2 py-0.5 rounded-full border border-gray-300 text-black bg-white font-bold ml-2">・${priceText}</span>`
                     : '';
 
 
