@@ -101,6 +101,23 @@
             animation: drift 3s infinite ease-in-out;
             pointer-events: none;
         }
+
+        /* Modal Animation */
+        @keyframes fade-in {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .animate-fade-in {
+            animation: fade-in 0.3s ease-out forwards;
+        }
     </style>
 </head>
 
@@ -188,6 +205,79 @@
         <div id="error-message" class="hidden text-center py-8 text-red-400">
             <p>位置情報を取得できませんでした。</p>
             <button onclick="startSearch()" class="mt-4 underline">再試行</button>
+        </div>
+    </div>
+
+    <!-- Shop Detail Modal -->
+    <div id="shop-detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+        <!-- Overlay -->
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm" onclick="closeShopModal()"></div>
+
+        <!-- Modal Content -->
+        <div
+            class="glass-card w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl p-6 relative z-10 animate-fade-in">
+            <button onclick="closeShopModal()"
+                class="absolute top-4 right-4 p-2 rounded-full bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white transition-colors">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+
+            <div id="modal-content" class="space-y-6">
+                <!-- Header -->
+                <div>
+                    <h2 id="modal-shop-name"
+                        class="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-amber-100 to-amber-400 mb-2 mr-8">
+                        Shop Name</h2>
+                    <div class="flex items-center gap-2 text-sm">
+                        <div class="flex items-center" id="modal-stars"></div>
+                        <span class="text-gray-400" id="modal-reviews">(0)</span>
+                        <span id="modal-status-badge"
+                            class="ml-2 text-xs px-2 py-0.5 rounded-full border border-green-500/50 text-green-400 bg-green-900/20">営業中</span>
+                    </div>
+                </div>
+
+                <!-- Action Button -->
+                <button id="modal-directions-btn"
+                    class="w-full group relative inline-flex h-12 items-center justify-center overflow-hidden rounded-xl bg-amber-500 px-6 font-medium text-neutral-950 transition-all duration-300 hover:bg-amber-400 focus:outline-none glow-btn">
+                    <i data-lucide="navigation" class="mr-2 h-5 w-5"></i>
+                    <span class="tracking-wide">このお店に行く (Google Maps)</span>
+                </button>
+
+                <!-- Info List -->
+                <div class="space-y-4 text-sm text-gray-300">
+                    <!-- Address -->
+                    <div class="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
+                        <i data-lucide="map-pin" class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5"></i>
+                        <span id="modal-address" class="break-words">Address...</span>
+                    </div>
+
+                    <!-- Hours -->
+                    <div class="flex items-start gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
+                        <i data-lucide="clock" class="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5"></i>
+                        <div>
+                            <span class="block text-amber-500 font-medium mb-1">営業時間</span>
+                            <ul id="modal-hours" class="space-y-1 text-xs text-gray-400">
+                                <!-- Hours lines injected here -->
+                                <li>Loading...</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Phone -->
+                    <div id="modal-phone-container"
+                        class="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
+                        <i data-lucide="phone" class="w-5 h-5 text-amber-500 flex-shrink-0"></i>
+                        <a id="modal-phone" href="#" class="hover:text-amber-400 transition-colors">03-0000-0000</a>
+                    </div>
+
+                    <!-- Website -->
+                    <div id="modal-website-container"
+                        class="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/5">
+                        <i data-lucide="globe" class="w-5 h-5 text-amber-500 flex-shrink-0"></i>
+                        <a id="modal-website" href="#" target="_blank" rel="noopener noreferrer"
+                            class="hover:text-amber-400 transition-colors break-all">Website URL</a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -495,12 +585,12 @@
                         // 5. 最大5つまで表示
                         const finalResults = candidates.slice(0, 5);
 
-                        // --- 詳細情報の取得 (レビュー・写真・価格) ---
+                        // --- 詳細情報の取得 (レビュー・写真・価格・詳細) ---
                         const detailPromises = finalResults.map(place => {
                             return new Promise((resolve) => {
                                 const detailRequest = {
                                     placeId: place.place_id,
-                                    fields: ['reviews', 'photos', 'price_level']
+                                    fields: ['reviews', 'photos', 'price_level', 'opening_hours', 'website', 'formatted_phone_number']
                                 };
                                 service.getDetails(detailRequest, (placeDetails, detailStatus) => {
                                     if (detailStatus === google.maps.places.PlacesServiceStatus.OK) {
@@ -524,6 +614,12 @@
                                         if (placeDetails.price_level !== undefined) {
                                             place.price_level = placeDetails.price_level;
                                         }
+
+                                        // 4. 詳細情報 (モーダル用)
+                                        place.opening_hours_detail = placeDetails.opening_hours;
+                                        place.website = placeDetails.website;
+                                        place.phone = placeDetails.formatted_phone_number;
+
                                     } else {
                                         place.topReview = "（詳細取得エラー）";
                                     }
@@ -601,8 +697,9 @@
                 const card = document.createElement('div');
                 card.className = 'glass-card rounded-xl p-6 mb-4 transform transition-all hover:scale-[1.02] hover:bg-white/5 border border-white/10 group animate-fade-in cursor-pointer relative overflow-hidden';
 
-                // 6. クリックで経路表示
-                card.onclick = () => openDirections(place.name, place.place_id);
+                // 6. クリックで詳細モーダル表示
+                // card.onclick = () => openDirections(place.name, place.place_id);
+                card.onclick = () => openShopModal(place);
 
                 // Star generation
                 const fullStars = Math.floor(place.rating);
@@ -740,6 +837,85 @@
         function updateResultTitle(title) {
             const titleEl = document.querySelector('#results-screen h1');
             if (titleEl) titleEl.textContent = title;
+        }
+
+        // --- Modal Functions ---
+        function openShopModal(place) {
+            // 1. Populate Basic Info
+            document.getElementById('modal-shop-name').textContent = place.name;
+            document.getElementById('modal-reviews').textContent = `(${place.reviews})`;
+
+            // Stars
+            const fullStars = Math.floor(place.rating);
+            let starsHtml = '';
+            for (let i = 0; i < fullStars; i++) starsHtml += '<i data-lucide="star" class="w-4 h-4 fill-amber-400 text-amber-400 inline"></i>';
+            if (place.rating % 1 !== 0) starsHtml += '<i data-lucide="star-half" class="w-4 h-4 fill-amber-400 text-amber-400 inline"></i>';
+            document.getElementById('modal-stars').innerHTML = starsHtml;
+            lucide.createIcons();
+
+            // Status Badge
+            const badge = document.getElementById('modal-status-badge');
+            if (place.isOpen) {
+                badge.textContent = '営業中';
+                badge.className = 'ml-2 text-xs px-2 py-0.5 rounded-full border border-green-500/50 text-green-400 bg-green-900/20';
+            } else {
+                badge.textContent = '営業時間外';
+                badge.className = 'ml-2 text-xs px-2 py-0.5 rounded-full border border-red-500/50 text-red-400 bg-red-900/20';
+            }
+
+            // 2. Action Button
+            document.getElementById('modal-directions-btn').onclick = () => openDirections(place.name, place.place_id);
+
+            // 3. Details
+            document.getElementById('modal-address').textContent = place.address;
+
+            // Hours
+            const hoursList = document.getElementById('modal-hours');
+            hoursList.innerHTML = '';
+            if (place.opening_hours_detail && place.opening_hours_detail.weekday_text) {
+                place.opening_hours_detail.weekday_text.forEach(text => {
+                    const li = document.createElement('li');
+                    li.textContent = text;
+                    hoursList.appendChild(li);
+                });
+            } else {
+                hoursList.innerHTML = '<li>営業時間情報なし</li>';
+            }
+
+            // Phone
+            const phoneContainer = document.getElementById('modal-phone-container');
+            const phoneLink = document.getElementById('modal-phone');
+            if (place.phone) {
+                phoneContainer.classList.remove('hidden');
+                phoneContainer.classList.add('flex');
+                phoneLink.textContent = place.phone;
+                phoneLink.href = `tel:${place.phone}`;
+            } else {
+                phoneContainer.classList.add('hidden');
+                phoneContainer.classList.remove('flex');
+            }
+
+            // Website
+            const webContainer = document.getElementById('modal-website-container');
+            const webLink = document.getElementById('modal-website');
+            if (place.website) {
+                webContainer.classList.remove('hidden');
+                webContainer.classList.add('flex');
+                webLink.textContent = place.website;
+                webLink.href = place.website;
+            } else {
+                webContainer.classList.add('hidden');
+                webContainer.classList.remove('flex');
+            }
+
+            // Show Modal
+            const modal = document.getElementById('shop-detail-modal');
+            modal.classList.remove('hidden');
+        }
+
+        function closeShopModal() {
+            const modal = document.getElementById('shop-detail-modal');
+            modal.classList.add('hidden');
         }
 
     </script>
