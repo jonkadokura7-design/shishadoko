@@ -618,11 +618,15 @@
                                         // 4. 詳細情報 (モーダル用)
                                         place.opening_hours_detail = placeDetails.opening_hours;
                                         // Update isOpen using detailed info if available
-                                        if (placeDetails.opening_hours && typeof placeDetails.opening_hours.isOpen === 'function') {
-                                            try {
-                                                place.isOpen = placeDetails.opening_hours.isOpen();
-                                            } catch (err) {
-                                                console.warn('Error checking open status:', err);
+                                        if (placeDetails.opening_hours) {
+                                            if (placeDetails.opening_hours.open_now !== undefined) {
+                                                place.isOpen = placeDetails.opening_hours.open_now;
+                                            } else if (typeof placeDetails.opening_hours.isOpen === 'function') {
+                                                try {
+                                                    place.isOpen = placeDetails.opening_hours.isOpen();
+                                                } catch (err) {
+                                                    console.warn('Error checking open status:', err);
+                                                }
                                             }
                                         }
                                         place.website = placeDetails.website;
