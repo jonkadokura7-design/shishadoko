@@ -566,7 +566,9 @@
                                 rating: place.rating || 0,
                                 reviews: place.user_ratings_total || 0,
                                 address: place.vicinity || place.formatted_address,
-                                isOpen: place.opening_hours ? place.opening_hours.open_now : false,
+                                // Since we request openNow: true in the search, we can assume valid results are open.
+                                // properties like open_now are deprecated and inconsistent.
+                                isOpen: true,
                                 distance: Math.round(distanceKm * 100) / 100,
                                 place_id: place.place_id,
                                 price_level: place.price_level, // Price Level取得
