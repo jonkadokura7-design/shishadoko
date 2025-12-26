@@ -594,8 +594,7 @@
                         const detailPromises = finalResults.map(place => {
                             return new Promise((resolve) => {
                                 const detailRequest = {
-                                    placeId: place.place_id,
-                                    fields: ['reviews', 'photos', 'price_level', 'opening_hours', 'website', 'formatted_phone_number']
+                                    placeId: place.place_id
                                 };
                                 service.getDetails(detailRequest, (placeDetails, detailStatus) => {
                                     if (detailStatus === google.maps.places.PlacesServiceStatus.OK) {
