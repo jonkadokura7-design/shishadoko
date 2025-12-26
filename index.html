@@ -238,8 +238,8 @@
                 <!-- Action Button -->
                 <button id="modal-directions-btn"
                     class="w-full group relative inline-flex h-12 items-center justify-center overflow-hidden rounded-xl bg-amber-500 px-6 font-medium text-neutral-950 transition-all duration-300 hover:bg-amber-400 focus:outline-none glow-btn">
-                    <i data-lucide="navigation" class="mr-2 h-5 w-5"></i>
-                    <span class="tracking-wide">このお店に行く (Google Maps)</span>
+                    <i data-lucide="map" class="mr-2 h-5 w-5"></i>
+                    <span class="tracking-wide">Googleマップで開く</span>
                 </button>
 
                 <!-- Info List -->
@@ -664,11 +664,10 @@
             }
         }
 
-        // 6. お店をクリックするとGoogleマップで現在地からそのお店までの経路を表示
-        function openDirections(name, place_id) {
-            // 目的地へのルート検索URL
-            // queryに店名、destination_place_idにIDを指定することで精度向上
-            const url = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(name)}&destination_place_id=${place_id}`;
+        // 6. お店をクリックするとGoogleマップで情報を表示
+        function openGoogleMaps(name, place_id) {
+            // Google Mapsで店舗情報を開くURL
+            const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(name)}&query_place_id=${place_id}`;
             window.open(url, '_blank');
         }
 
@@ -867,7 +866,8 @@
             }
 
             // 2. Action Button
-            document.getElementById('modal-directions-btn').onclick = () => openDirections(place.name, place.place_id);
+            // 2. Action Button
+            document.getElementById('modal-directions-btn').onclick = () => openGoogleMaps(place.name, place.place_id);
 
             // 3. Details
             document.getElementById('modal-address').textContent = place.address;
