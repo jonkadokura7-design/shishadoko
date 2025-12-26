@@ -549,7 +549,7 @@
             const request = {
                 location: location,
                 keyword: 'シーシャ',
-                rankBy: google.maps.places.RankBy.DISTANCE,
+                radius: maxDistanceKm * 1000, // API uses meters
                 openNow: true // 3. 営業中のお店のみ
             };
 
