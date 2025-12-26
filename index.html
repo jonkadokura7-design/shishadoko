@@ -566,7 +566,7 @@
                                 rating: place.rating || 0,
                                 reviews: place.user_ratings_total || 0,
                                 address: place.vicinity || place.formatted_address,
-                                isOpen: place.opening_hours ? place.opening_hours.isOpen() : true,
+                                isOpen: place.opening_hours ? place.opening_hours.open_now : false,
                                 distance: Math.round(distanceKm * 100) / 100,
                                 place_id: place.place_id,
                                 price_level: place.price_level, // Price Level取得
